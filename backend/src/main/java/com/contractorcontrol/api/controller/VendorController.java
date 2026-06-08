@@ -134,13 +134,8 @@ public class VendorController {
     if (!expiredItems.isEmpty()) {
       return "at_risk";
     }
-    boolean hasPending = admissions.stream().anyMatch(a -> "pending".equals(a.getStatus()));
-    boolean hasRejected = admissions.stream().anyMatch(a -> "rejected".equals(a.getStatus()));
-    if (!expiringSoonItems.isEmpty() || hasRejected) {
+    if (!expiringSoonItems.isEmpty()) {
       return "warning";
-    }
-    if (hasPending) {
-      return "pending";
     }
     return "normal";
   }
