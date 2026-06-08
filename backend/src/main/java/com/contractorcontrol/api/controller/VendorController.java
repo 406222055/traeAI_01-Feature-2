@@ -78,10 +78,23 @@ public class VendorController {
 
     List<AdmissionEntity> admissions = admissionRepository.findByVendorId(id);
 
+    java.util.Set<String> involvedProjectIds = admissions.stream()
+        .filter(a -> "approved".equals(a.getStatus()))
+        .map(a -> a.getProject().getId())
+        .collect(java.util.stream.Collectors.toSet());
+
+    List<ComplianceItemEntity> scopedItems = complianceItemRepository.findByVendorId(id).stream()
+        .filter(item -> item.getProject() != null && involvedProjectIds.contains(item.getProject().getId()))
+        .collect(Collectors.toList());
+
     Instant now = Instant.now();
     Instant in30Days = now.plus(30, ChronoUnit.DAYS);
-    List<ComplianceItemEntity> expiredItems = complianceItemRepository.findByVendorIdAndExpiryDateBefore(id, now);
-    List<ComplianceItemEntity> expiringSoonItems = complianceItemRepository.findByVendorIdAndExpiryDateBetween(id, now, in30Days);
+    List<ComplianceItemEntity> expiredItems = scopedItems.stream()
+        .filter(item -> item.getExpiryDate().isBefore(now))
+        .collect(Collectors.toList());
+    List<ComplianceItemEntity> expiringSoonItems = scopedItems.stream()
+        .filter(item -> !item.getExpiryDate().isBefore(now) && !item.getExpiryDate().isAfter(in30Days))
+        .collect(Collectors.toList());
 
     String performanceStatus = computePerformanceStatus(vendor, admissions, expiredItems, expiringSoonItems);
 
